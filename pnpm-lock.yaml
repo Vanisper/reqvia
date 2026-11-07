@@ -200,6 +200,21 @@ importers:
         specifier: 'catalog:'
         version: 1.2.0(@types/node@26.6.6)(@vitest/ui@5.0.4)(typescript@7.0.2)
 
+  packages/compat-abort:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      reqvia:
+        specifier: workspace:*
+        version: link:../reqvia
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.2.0(@types/node@24.19.2)(@vitest/ui@5.0.4)(typescript@7.0.2)
+
   packages/reqvia:
     devDependencies:
       '@types/node':
