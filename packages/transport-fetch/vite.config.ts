@@ -9,6 +9,11 @@ export default defineConfig({
   },
   run: {
     tasks: {
+      test: {
+        command: "vp test",
+        dependsOn: [{ task: "build", from: ["dependencies", "peerDependencies"] }],
+        cache: false,
+      },
       build: {
         command: "vp pack",
         dependsOn: [{ task: "build", from: ["dependencies", "peerDependencies"] }],
