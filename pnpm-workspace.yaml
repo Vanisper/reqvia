@@ -17,3 +17,7 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
+
+allowBuilds:
+  esbuild@0.20.2: true
+  core-js-pure@3.51.0: false
