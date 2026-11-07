@@ -2,7 +2,7 @@
 
 Reqvia 是可扩展的 HTTP 客户端库，以稳定的执行契约连接业务接口与传输实现。业务通过普通函数或 Service 组织接口，按需组合响应解析、调用控制与请求策略。
 
-项目已建立工程骨架，HTTP 客户端与扩展包仍处于接口设计阶段；以下示例说明约定的使用方式。
+当前已实现单次请求执行核心与 Fetch 适配器，包含编解码、配置派生、取消和总超时。产品包在工作区内开发，尚未发布。
 
 ## 解决什么问题
 
@@ -52,17 +52,17 @@ await pending; // 以取消错误拒绝
 
 执行核心负责单次 HTTP 调用、编解码、取消与超时。应用和扩展模块围绕 `HttpExecutor` 组织认证、重试与并发协调；查询缓存、页面状态与 UI 通知由拥有相应状态的上层模块管理。
 
-项目采用 monorepo，以 Vite Plus 组织开发、检查、测试与构建。当前工作空间包含 `apps/website` 与 `packages/utils`；HTTP 产品包按以下职责规划：
+项目采用 monorepo，以 Vite Plus 组织开发、检查、测试与构建。`apps/website` 与 `packages/utils` 保留为 CLI 生成的工程示例，产品包按职责独立维护：
 
-| 包                        | 职责                           |
-| ------------------------- | ------------------------------ |
-| `reqvia`                  | 客户端、执行契约、取消与编解码 |
-| `@reqvia/transport-fetch` | Fetch 传输适配                 |
-| `@reqvia/transport-uni`   | UniApp 请求适配                |
-| `@reqvia/compat-abort`    | 与 `AbortSignal` 的取消桥接    |
-| `@reqvia/testing`         | 内存传输与可控响应             |
+| 包                        | 职责                           | 状态   |
+| ------------------------- | ------------------------------ | ------ |
+| `reqvia`                  | 客户端、执行契约、取消与编解码 | 已实现 |
+| `@reqvia/transport-fetch` | Fetch 传输适配                 | 已实现 |
+| `@reqvia/transport-uni`   | UniApp 请求适配                | 规划   |
+| `@reqvia/compat-abort`    | 与 `AbortSignal` 的取消桥接    | 规划   |
+| `@reqvia/testing`         | 内存传输与可控响应             | 规划   |
 
-初期使用 Fetch 与 UniApp 适配器，在浏览器、Node 和选定的 UniApp 目标端验证执行契约。其他传输实现通过同一 `Transport` 接口接入，具体能力记录见[平台兼容性](docs/compatibility.md)。原生文件上传、下载落盘、进度与流属于独立扩展方向。
+当前 Fetch 适配器已完成 Node 本地 HTTP 验证，浏览器与 UniApp 目标端按接入进度分别验证。其他传输实现通过同一 `Transport` 接口接入，具体能力记录见[平台兼容性](docs/compatibility.md)。原生文件上传、下载落盘、进度与流属于独立扩展方向。
 
 ## 开发
 
@@ -73,7 +73,7 @@ vp install --frozen-lockfile
 vp run ready
 ```
 
-`ready` 依次检查、测试和构建整个工作区；`vp run dev` 启动 CLI 生成的应用示例。当前构建验证覆盖工程脚手架，HTTP 能力的实现与验收按设计文档推进。
+`ready` 依次构建、检查、测试整个工作区，并验证独立安装的打包产物。先构建保证跨包检查使用实际导出的声明；`vp run dev` 启动 CLI 生成的应用示例。主包契约测试与 Fetch 的本地 HTTP 集成测试共同验证调用行为。
 
 ## 设计文档
 

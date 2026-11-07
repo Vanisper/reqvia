@@ -4,6 +4,8 @@ Reqvia 的执行入口是 `request(spec, decoder, options)`：请求描述决定
 
 本文定义首版 API 与行为；使用示例见[使用方式](usage.md)，各包职责见[项目结构](structure.md)。这些接口是实现与测试共同遵循的约定。
 
+主包契约已实现。文末的取消兼容入口属于独立包规划，不在当前主包导出中。
+
 ## 客户端与执行器
 
 ```ts
@@ -208,7 +210,7 @@ interface CancellationSource {
 declare function createCancellation(): CancellationSource;
 ```
 
-取消只发生一次，保留第一次的原因；重复 `cancel()` 幂等。已取消时，`subscribe()` 同步通知监听者。取消订阅函数幂等；单个监听者异常不得妨碍其他监听者收到通知，也不得使执行器漏掉终态清理。
+取消只发生一次，保留第一次的原因；重复 `cancel()` 幂等。已取消时，`subscribe()` 同步通知监听者。取消订阅函数幂等；单个监听者的异常不会传播到 `cancel()` 或阻止其他通知。同一个函数的多次订阅分别管理，退订其中一次不影响其他订阅。
 
 总预算从进入 `request()` 起算，覆盖快照、规范化、传输、正文读取、状态判断和异步解码。调用前已取消时不启动传输。`timeoutMs: 0` 只关闭 Reqvia 的预算，平台和网络仍可能因各自的限制结束请求。
 
