@@ -17,6 +17,10 @@ export default defineConfig({
         command: "node tools/verify-packages.mjs",
         cache: false,
       },
+      "verify:browser": {
+        command: "vp run -F transport-check verify",
+        cache: false,
+      },
     },
   },
 });

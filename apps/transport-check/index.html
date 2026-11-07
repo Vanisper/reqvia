@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reqvia 传输验证</title>
+  </head>
+  <body>
+    <h1>Reqvia 传输验证</h1>
+    <p>同一业务接口分别使用浏览器 Fetch 与官方 Uni H5 请求运行时。</p>
+    <p id="status" role="status">正在运行本地 HTTP 验证…</p>
+    <table>
+      <thead>
+        <tr>
+          <th>传输实现</th>
+          <th>验证项</th>
+          <th>结果</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

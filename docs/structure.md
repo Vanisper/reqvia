@@ -7,10 +7,13 @@ Reqvia 使用 Vite Plus CLI 创建的 monorepo。工作区沿用 `apps/*`、`pac
 ```text
 reqvia/
 ├─ apps/
+│  ├─ transport-check/      Fetch 与官方 Uni H5 请求运行时验证
 │  └─ website/              Vite 应用示例
 ├─ packages/
+│  ├─ compat-abort/         原生取消信号双向桥接
 │  ├─ reqvia/               请求执行核心与编解码
 │  ├─ transport-fetch/      Fetch 适配器
+│  ├─ transport-uni/        UniApp 回调适配器
 │  └─ utils/                TypeScript 库示例
 ├─ tools/                   打包产物消费验证
 ├─ docs/                    产品设计、契约、使用与验收
@@ -24,7 +27,7 @@ reqvia/
 └─ README.md
 ```
 
-`website` 与 `utils` 是 CLI 生成的工程示例，用于验证应用构建、库打包和测试链路。HTTP 能力由 `reqvia` 与 `transport-fetch` 提供。`tools/verify-packages.mjs` 验证独立安装的产品包；需要工具包时继续使用已有的 `tools/*` workspace 范围。
+`website` 与 `utils` 是 CLI 生成的工程示例，用于验证应用构建、库打包和测试链路。`transport-check` 消费产品包的公共入口，在浏览器中对比两种传输。`tools/verify-packages.mjs` 验证独立安装的产品包；需要工具包时继续使用已有的 `tools/*` workspace 范围。
 
 产品实现继续在这套结构中增加包。示例应用放在 `apps/`，可发布能力放在 `packages/`，仓库工具放在 `tools/`；不再建立平行的 `examples/` 或第二套构建工程。
 
@@ -38,7 +41,7 @@ reqvia/
 | `packages/compat-abort`    | `@reqvia/compat-abort`    | 原生取消信号桥接                 |
 | `packages/testing`         | `@reqvia/testing`         | 内存传输、响应脚本与调用记录     |
 
-主包与 Fetch 适配器已通过 `vp create vite:library` 创建，其余包按实现进度建立。扩展包独立安装，主包不捆绑平台实现。新增平台适配器沿用相同规则，不需要扩展核心中的平台枚举。
+主包、两个适配器和取消桥接包均通过 `vp create vite:library` 创建；测试工具包按实际复用需求建立。扩展包独立安装，主包不捆绑平台实现。新增平台适配器沿用相同规则，不需要扩展核心中的平台枚举。
 
 根目录的私有包名为 `reqvia-workspace`，产品主包名为 `reqvia`。根包始终 `private: true`；产品包在发布准备完成前也保持 private。包名不代表已在注册表中占用。
 
@@ -81,9 +84,9 @@ packages/reqvia/
 
 库包的 `build` 使用 `vp pack`，应用使用 `vp build`，工作区使用 `vp run -r build`。`vp pack` 负责库输出与声明生成；不额外增加独立 tsdown 配置或并行的任务调度器。[Vite Plus 库打包](https://viteplus.dev/guide/pack)
 
-UniApp 等需要专用编译器的验证应用保留平台编译链，将其构建命令注册为 workspace task，由 `vp run` 调度。统一任务入口不意味着替代每个运行环境的编译工具。
+`transport-check` 通过 Vite Plus 构建官方 `@dcloudio/uni-h5` 的请求入口，使用与其版本一致的 `uni-h5-vue` 运行时。该应用验证浏览器中的请求行为，不使用 Uni 专用编译器。完整 UniApp 工程和小程序仍需各自编译链，将相应命令注册为 workspace task 后由 `vp run` 调度。
 
-产品包通过包级 `vite.config.ts` 的 `run.tasks` 声明构建依赖；Fetch 适配器构建和测试之前先构建主包。任务使用以下结构：
+产品包通过包级 `vite.config.ts` 的 `run.tasks` 声明构建依赖；适配器与取消桥接在构建和测试之前先构建主包，浏览器验证先构建消费应用。任务使用以下结构：
 
 ```ts
 import { defineConfig } from "vite-plus";
@@ -101,7 +104,7 @@ export default defineConfig({
 });
 ```
 
-同一任务只在 script 或配置中定义一次。Fetch 测试包含真实网络调用，任务设置 `cache: false`；打包消费验证同样不使用缓存。其他纯构建任务使用 Vite Plus 的产物缓存。[Vite Plus 任务配置](https://viteplus.dev/config/run)
+同一任务只在 script 或配置中定义一次。Fetch 测试、浏览器验证和打包消费验证包含真实网络或文件安装，任务设置 `cache: false`。其他纯构建任务使用 Vite Plus 的产物缓存。[Vite Plus 任务配置](https://viteplus.dev/config/run)
 
 ## 日常命令
 
@@ -114,17 +117,20 @@ vp run ready
 
 `ready` 依次执行递归构建、检查、递归测试和打包消费验证。跨包检查从实际生成的声明解析公共入口。各步骤也可以独立运行：
 
-| 命令                        | 用途                                     |
-| --------------------------- | ---------------------------------------- |
-| `vp check`                  | 格式、lint 与类型检查                    |
-| `vp run -r test`            | 执行声明了测试任务的 workspace 包        |
-| `vp run -r build`           | 构建工作区中的应用与库                   |
-| `vp run dev`                | 启动 `website` 开发服务                  |
-| `vp -C packages/utils pack` | 单独打包库示例                           |
-| `vp toolchain`              | 查看实际使用的工具版本                   |
-| `vp run verify:packages`    | 独立安装 tarball，验证运行入口与类型声明 |
+| 命令                        | 用途                                            |
+| --------------------------- | ----------------------------------------------- |
+| `vp check`                  | 格式、lint 与类型检查                           |
+| `vp run -r test`            | 执行声明了测试任务的 workspace 包               |
+| `vp run -r build`           | 构建工作区中的应用与库                          |
+| `vp run dev`                | 启动 `website` 开发服务                         |
+| `vp -C packages/utils pack` | 单独打包库示例                                  |
+| `vp toolchain`              | 查看实际使用的工具版本                          |
+| `vp run verify:packages`    | 独立安装 tarball，验证运行入口与类型声明        |
+| `vp run verify:browser`     | 构建并验证浏览器 Fetch 与官方 Uni H5 请求运行时 |
 
 `vp check` 只负责静态检查，不代替测试、打包和产物消费验证。[Vite Plus 检查说明](https://viteplus.dev/guide/check)
+
+`verify:browser` 需要本机 Chrome 或 Chromium，可通过 `CHROME_BIN` 指定可执行文件；该任务单独运行，不属于无需浏览器的 `ready` 流程。验证使用临时浏览器配置和本地 HTTP 服务，结束时清理。Uni H5 验证依赖保持在验证应用内，不进入产品包的运行依赖。
 
 ## 产物与版本
 
