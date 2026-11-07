@@ -12,5 +12,11 @@ export default defineConfig({
   },
   run: {
     cache: true,
+    tasks: {
+      "verify:packages": {
+        command: "node tools/verify-packages.mjs",
+        cache: false,
+      },
+    },
   },
 });
