@@ -2,7 +2,7 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   pack: {
-    dts: { generator: "tsgo" },
+    dts: { generator: "tsc" },
     exports: true,
     platform: "neutral",
     target: "es2022",

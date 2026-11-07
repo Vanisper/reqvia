@@ -1,5 +1,6 @@
 packages:
   - apps/*
+  - examples/*
   - packages/*
   - tools/*
 
@@ -7,11 +8,34 @@ catalogMode: prefer
 
 catalog:
   "@types/node": ^24
-  typescript: ^7.0.2
+  typescript: 6.0.3
   vite: npm:@voidzero-dev/vite-plus-core@1.2.0
   vite-plus: 1.2.0
+  ws: 8.22.1
+
+catalogs:
+  uniapp:
+    "@dcloudio/uni-app": 3.0.0-alpha-5030620261106001
+    "@dcloudio/uni-components": 3.0.0-alpha-5030620261106001
+    "@dcloudio/uni-h5": 3.0.0-alpha-5030620261106001
+    "@dcloudio/uni-h5-vue": 3.0.0-alpha-5030620261106001
+    "@dcloudio/uni-mp-weixin": 3.0.0-alpha-5030620261106001
+    "@dcloudio/vite-plugin-uni": 3.0.0-alpha-5030620261106001
+    "@dcloudio/types": 3.4.31
+    "@uni-helper/uni-app-types": 1.5.0
+    core-js: 3.51.0
+    vue: 3.4.21
+    vue-i18n: 9.1.9
+    vue-tsc: 3.3.14
+    vite: 5.2.8
+  web:
+    vue: 3.5.45
+    "@vitejs/plugin-vue": 6.0.10
+    vue-tsc: 3.3.14
+
 overrides:
   vite@*: "catalog:"
+  "@reqvia/example-uniapp>vite": "catalog:uniapp"
 peerDependencyRules:
   allowAny:
     - vite
@@ -21,3 +45,4 @@ peerDependencyRules:
 allowBuilds:
   esbuild@0.20.2: true
   core-js-pure@3.51.0: false
+  core-js@3.51.0: false

@@ -1,0 +1,22 @@
+{
+  "name": "@reqvia/example-node",
+  "version": "0.0.0",
+  "private": true,
+  "description": "使用 Reqvia 公共入口的 Node 命令行示例",
+  "type": "module",
+  "scripts": {
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@reqvia/compat-abort": "workspace:*",
+    "@reqvia/example-domain": "workspace:*",
+    "@reqvia/example-server": "workspace:*",
+    "@reqvia/transport-fetch": "workspace:*",
+    "reqvia": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

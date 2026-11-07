@@ -1,0 +1,30 @@
+{
+  "name": "@reqvia/example-uniapp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@dcloudio/uni-app": "catalog:uniapp",
+    "@dcloudio/uni-components": "catalog:uniapp",
+    "@dcloudio/uni-h5": "catalog:uniapp",
+    "@dcloudio/uni-mp-weixin": "catalog:uniapp",
+    "@reqvia/example-domain": "workspace:*",
+    "@reqvia/transport-uni": "workspace:*",
+    "core-js": "catalog:uniapp",
+    "reqvia": "workspace:*",
+    "vue": "catalog:uniapp",
+    "vue-i18n": "catalog:uniapp"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "catalog:uniapp",
+    "@dcloudio/vite-plugin-uni": "catalog:uniapp",
+    "@reqvia/example-server": "workspace:*",
+    "@types/node": "catalog:",
+    "@uni-helper/uni-app-types": "catalog:uniapp",
+    "typescript": "catalog:",
+    "vite": "catalog:uniapp",
+    "vite-plus": "catalog:",
+    "vue-tsc": "catalog:uniapp",
+    "ws": "catalog:"
+  }
+}
