@@ -1,6 +1,6 @@
 # 使用方式
 
-业务代码通过 `HttpExecutor` 调用接口；客户端与平台适配器在应用初始化处组装。以下示例展示首版约定的 API，完整行为见[公共契约](contracts.md)。
+业务代码通过 `HttpExecutor` 调用接口；客户端与平台适配器在应用初始化处组装。核心与 Fetch 示例使用已实现的 API，完整行为见[公共契约](contracts.md)。
 
 ## 组装客户端
 
@@ -181,6 +181,8 @@ Reqvia 只负责 JSON 文本解析，不赋予 `code`、`message` 或 `data` 固
 ## 接入外部取消信号
 
 使用方已经持有 `AbortSignal` 时，通过兼容包建立绑定，并在调用结束后释放：
+
+`@reqvia/compat-abort` 尚在规划中，下例定义其接入方式。当前调用可以使用主包的 `createCancellation()`。
 
 ```ts
 import { fromAbortSignal } from "@reqvia/compat-abort";
