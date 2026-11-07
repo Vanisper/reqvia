@@ -1,10 +1,10 @@
 {
-  "name": "reqvia",
+  "name": "reqvia-workspace",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "vp check && vp run -r test && vp run -r build",
+    "ready": "vp run -r build && vp check && vp run -r test",
     "dev": "vp run website#dev",
     "prepare": "vp config"
   },
