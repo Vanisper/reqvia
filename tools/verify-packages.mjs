@@ -103,8 +103,35 @@ void options;
 void invalidOptions;
 `;
 
+const portableProbe = `import { createCancellation } from "reqvia";
+import type { Cancellation, Transport } from "reqvia";
+import { fromAbortSignal, toAbortSignal } from "@reqvia/compat-abort";
+import type { AbortControllerLike, AbortSignalLike } from "@reqvia/compat-abort";
+import { createUniTransport } from "@reqvia/transport-uni";
+import type { UniRequestOptions, UniRequestTask } from "@reqvia/transport-uni";
+
+declare const signal: AbortSignalLike;
+declare const createController: () => AbortControllerLike;
+const incoming: Cancellation = fromAbortSignal(signal).cancellation;
+const outgoing: AbortSignalLike = toAbortSignal(incoming, createController).signal;
+const request = (options: UniRequestOptions): UniRequestTask => {
+  options.success({ statusCode: 200, data: "ok", header: {} });
+  return { abort() {} };
+};
+const transport: Transport = createUniTransport({
+  request,
+  capabilities: { methods: ["GET", "POST"], requestBytes: true, responseBytes: true },
+});
+const source = createCancellation();
+// @ts-expect-error 需要传入只读取消状态，不能传取消源
+toAbortSignal(source, createController);
+void outgoing;
+void transport;
+`;
+
 const fetchProbe = `import { createFetchTransport } from "@reqvia/transport-fetch";
 import type { FetchTransportOptions } from "@reqvia/transport-fetch";
+import { fromAbortSignal, toAbortSignal } from "@reqvia/compat-abort";
 import type { Transport } from "reqvia";
 
 const options: FetchTransportOptions = {
@@ -112,14 +139,24 @@ const options: FetchTransportOptions = {
   createAbortController: () => new AbortController(),
 };
 const transport: Transport = createFetchTransport(options);
+const binding = fromAbortSignal(new AbortController().signal);
+const outgoing = toAbortSignal(binding.cancellation, () => new AbortController());
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends
+  (<T>() => T extends B ? 1 : 2) ? true : false;
+type Assert<T extends true> = T;
+export type NativeSignalResult = Assert<Equal<typeof outgoing.signal, AbortSignal>>;
+const nativeSignal: AbortSignal = outgoing.signal;
+void nativeSignal;
 void transport;
 `;
 
 const runtimeSource = `import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { createHttpClient, createHeaderFields } from "reqvia";
+import { createCancellation, createHttpClient, createHeaderFields } from "reqvia";
+import { fromAbortSignal, toAbortSignal } from "@reqvia/compat-abort";
 import { createFetchTransport } from "@reqvia/transport-fetch";
+import { createUniTransport } from "@reqvia/transport-uni";
 import { UserService } from "./compiled/service.js";
 
 const expected = { id: "42", name: "林舟" };
@@ -141,8 +178,17 @@ const memory = new UserService(createHttpClient({
 }));
 
 let networkCalls = 0;
+const slowStarted = Promise.withResolvers();
+const slowClosed = Promise.withResolvers();
 const server = createServer((request, response) => {
   networkCalls++;
+  if (request.url === "/v1/users/slow") {
+    response.on("close", slowClosed.resolve);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.write("{");
+    slowStarted.resolve();
+    return;
+  }
   response.writeHead(request.url === "/v1/users/42" ? 200 : 404, {
     "content-type": "application/json;charset=UTF-8",
   });
@@ -167,6 +213,86 @@ try {
   assert.deepEqual(await network.find("42"), expected);
   assert.equal(memoryCalls, 1);
   assert.equal(networkCalls, 1);
+
+  const native = new AbortController();
+  const incoming = fromAbortSignal(native.signal);
+  const reason = { action: "leave-page" };
+  try {
+    const pending = network.find("slow", { cancellation: incoming.cancellation });
+    const rejected = assert.rejects(pending, (error) =>
+      error.kind === "CANCELLED" && error.reason === reason);
+    await slowStarted.promise;
+    native.abort(reason);
+    await rejected;
+    await slowClosed.promise;
+  } finally {
+    incoming.dispose();
+  }
+
+  let uniCalls = 0;
+  let uniAborts = 0;
+  const uni = new UserService(createHttpClient({
+    baseURL: "https://uni.example/v1/",
+    transport: createUniTransport({
+      capabilities: { methods: ["GET"], requestBytes: false, responseBytes: false },
+      request(options) {
+        uniCalls++;
+        assert.equal(options.dataType, "text");
+        assert.equal(options.responseType, "text");
+        assert.equal(options.method, "GET");
+        if (options.url === "https://uni.example/v1/users/42") {
+          queueMicrotask(() => options.success({
+            statusCode: 200,
+            data: JSON.stringify(expected),
+            header: { "Content-Type": "application/json" },
+          }));
+        } else {
+          assert.equal(options.url, "https://uni.example/v1/users/slow");
+        }
+        return {
+          abort() {
+            uniAborts++;
+            options.fail({ errMsg: "request:fail abort" });
+          },
+        };
+      },
+    }),
+  }));
+  assert.deepEqual(await uni.find("42"), expected);
+  const uniNative = new AbortController();
+  const uniIncoming = fromAbortSignal(uniNative.signal);
+  try {
+    const pending = uni.find("slow", { cancellation: uniIncoming.cancellation });
+    const rejected = assert.rejects(pending, (error) =>
+      error.kind === "CANCELLED" && error.reason === reason);
+    uniNative.abort(reason);
+    await rejected;
+    assert.equal(uniAborts, 1);
+    assert.equal(uniCalls, 2);
+  } finally {
+    uniIncoming.dispose();
+  }
+
+  const source = createCancellation();
+  const outgoing = toAbortSignal(source.cancellation, () => new AbortController());
+  source.cancel(reason);
+  assert.equal(outgoing.signal.aborted, true);
+  assert.equal(outgoing.signal.reason, reason);
+  outgoing.dispose();
+  outgoing.dispose();
+
+  const detachedNative = new AbortController();
+  const detached = fromAbortSignal(detachedNative.signal);
+  detached.dispose();
+  detached.dispose();
+  detachedNative.abort(reason);
+  assert.equal(detached.cancellation.cancelled, false);
+
+  const detachedSource = createCancellation();
+  const detachedOutgoing = toAbortSignal(detachedSource.cancellation, () => new AbortController());
+  detachedOutgoing.dispose();
+  detachedSource.cancel(reason);
+  assert.equal(detachedOutgoing.signal.aborted, false);
 } finally {
   if (server.listening) {
     const closed = new Promise((resolve, reject) => {
@@ -184,6 +310,8 @@ try {
   for (const [directory, name, filename] of [
     ["reqvia", "reqvia", "reqvia.tgz"],
     ["transport-fetch", "@reqvia/transport-fetch", "transport-fetch.tgz"],
+    ["transport-uni", "@reqvia/transport-uni", "transport-uni.tgz"],
+    ["compat-abort", "@reqvia/compat-abort", "compat-abort.tgz"],
   ]) {
     const archive = join(temporary, filename);
     pnpm(["pack", "--out", archive], join(root, "packages", directory));
@@ -211,6 +339,7 @@ try {
   await Promise.all([
     writeFile(join(consumer, "service.ts"), serviceSource),
     writeFile(join(consumer, "core-probe.ts"), coreProbe),
+    writeFile(join(consumer, "portable-probe.ts"), portableProbe),
     writeFile(join(consumer, "fetch-probe.ts"), fetchProbe),
     writeFile(join(consumer, "runtime.mjs"), runtimeSource),
   ]);
@@ -227,7 +356,7 @@ try {
       verbatimModuleSyntax: true,
       outDir: "compiled",
     },
-    files: ["service.ts", "core-probe.ts"],
+    files: ["service.ts", "core-probe.ts", "portable-probe.ts"],
   });
   await writeJSON("tsconfig.fetch.json", {
     extends: "./tsconfig.core.json",
@@ -238,7 +367,7 @@ try {
   run(compiler, ["-p", "tsconfig.fetch.json"], consumer);
   run(process.execPath, ["runtime.mjs"], consumer, 15_000);
   console.log(
-    `打包产物验证通过（Node ${process.version}）：独立离线安装、核心纯 ES 类型、Fetch 类型与 Service 双传输消费`,
+    `打包产物验证通过（Node ${process.version}）：四包独立安装、纯 ES 与 DOM 类型、Service 三种传输消费和双向取消桥接`,
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
