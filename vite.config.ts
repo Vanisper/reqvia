@@ -21,6 +21,11 @@ export default defineConfig({
         command: "vp run -F transport-check verify",
         cache: false,
       },
+      "verify:examples": {
+        command:
+          "vp run -F @reqvia/example-node test && vp run -F @reqvia/example-web verify && vp run -F @reqvia/example-uniapp verify",
+        cache: false,
+      },
     },
   },
 });

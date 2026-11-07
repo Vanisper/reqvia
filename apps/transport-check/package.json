@@ -8,15 +8,15 @@
     "preview": "vp preview"
   },
   "dependencies": {
-    "@dcloudio/uni-h5": "3.0.0-alpha-5030620261106001",
-    "@dcloudio/uni-h5-vue": "3.0.0-alpha-5030620261106001",
+    "@dcloudio/uni-h5": "catalog:uniapp",
+    "@dcloudio/uni-h5-vue": "catalog:uniapp",
     "@reqvia/compat-abort": "workspace:*",
     "@reqvia/transport-fetch": "workspace:*",
     "@reqvia/transport-uni": "workspace:*",
     "reqvia": "workspace:*"
   },
   "devDependencies": {
-    "@dcloudio/types": "3.4.32",
+    "@dcloudio/types": "catalog:uniapp",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

@@ -9,7 +9,7 @@ export default defineConfig({
       resolveDepSubpath: true,
     },
     dts: {
-      generator: "tsgo",
+      generator: "tsc",
     },
     exports: true,
   },

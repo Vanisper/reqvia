@@ -62,7 +62,19 @@ await pending; // 以取消错误拒绝
 | `@reqvia/compat-abort`    | 与 `AbortSignal` 的取消桥接    | 已实现 |
 | `@reqvia/testing`         | 内存传输与可控响应             | 规划   |
 
-Fetch 适配器已完成 Node 与浏览器本地 HTTP 验证，UniApp 适配器已通过官方 Uni H5 请求运行时验证。完整 UniApp 工程与小程序目标仍需分别验证。其他传输实现通过同一 `Transport` 接口接入，具体能力记录见[平台兼容性](docs/compatibility.md)。原生文件上传、下载落盘、进度与流属于独立扩展方向。
+Fetch 适配器已完成 Node 与浏览器本地 HTTP 验证，UniApp 适配器已通过官方 Uni H5 请求运行时及完整 H5 工程验证。其他传输实现通过同一 `Transport` 接口接入，具体环境与能力记录见[平台兼容性](docs/compatibility.md)。原生文件上传、下载落盘、进度与流属于独立扩展方向。
+
+## 消费示例
+
+`examples/` 包含三个消费端，共用用户领域模型与 `UserService`：
+
+| 示例                                | 内容                                                |
+| ----------------------------------- | --------------------------------------------------- |
+| [Web](examples/web/README.md)       | Vue 用户目录、搜索与详情、状态代次与视图退出取消    |
+| [UniApp](examples/uniapp/README.md) | 标准 UniApp 工程、页面生命周期、H5 与微信模拟器验收 |
+| [Node](examples/node/README.md)     | CLI 查询、错误退出码、超时与进程信号取消            |
+
+启动与验收命令见[消费示例说明](examples/README.md)。示例采用同一套 VP 任务和锁文件；Web 与 UniApp 的框架依赖分别收在 `web`、`uniapp` 具名 catalog 中。
 
 ## 开发
 
@@ -76,6 +88,8 @@ vp run ready
 `ready` 依次构建、检查、测试整个工作区，并验证独立安装的打包产物。先构建保证跨包检查使用实际导出的声明；`vp run dev` 启动 CLI 生成的应用示例。主包契约测试与 Fetch 的本地 HTTP 集成测试共同验证调用行为。
 
 `vp run verify:browser` 另外运行 20 项浏览器双传输验证，需要本机 Chrome 或 Chromium；可用 `CHROME_BIN` 指定可执行文件。验证应用位于 `apps/transport-check`。
+
+`vp run verify:examples` 验证 Node CLI、Web 页面与完整 UniApp H5 工程。GitHub Actions 已配置冻结安装、`ready` 及两组浏览器验收。
 
 ## 设计文档
 

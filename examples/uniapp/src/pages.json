@@ -1,0 +1,11 @@
+{
+  "pages": [
+    { "path": "pages/users/index", "style": { "navigationBarTitleText": "Reqvia · 用户目录" } },
+    { "path": "pages/detail/index", "style": { "navigationBarTitleText": "用户详情" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#f5f4ef",
+    "backgroundColor": "#f5f4ef"
+  }
+}

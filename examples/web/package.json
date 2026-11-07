@@ -1,0 +1,24 @@
+{
+  "name": "@reqvia/example-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "@reqvia/example-domain": "workspace:*",
+    "@reqvia/transport-fetch": "workspace:*",
+    "reqvia": "workspace:*",
+    "vue": "catalog:web"
+  },
+  "devDependencies": {
+    "@reqvia/example-server": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:web",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue-tsc": "catalog:web"
+  }
+}
