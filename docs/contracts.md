@@ -4,7 +4,7 @@ Reqvia 的执行入口是 `request(spec, decoder, options)`：请求描述决定
 
 本文定义首版 API 与行为；使用示例见[使用方式](usage.md)，各包职责见[项目结构](structure.md)。这些接口是实现与测试共同遵循的约定。
 
-主包契约已实现。文末的取消兼容入口属于独立包规划，不在当前主包导出中。
+主包契约已实现。文末的取消兼容入口由独立的 `@reqvia/compat-abort` 提供。
 
 ## 客户端与执行器
 
@@ -307,14 +307,37 @@ Reqvia 自身产生的失败采用 `HttpError`。用户提供的解码器、JSON
 
 ```ts
 // 来自 @reqvia/compat-abort
+interface AbortSignalLike {
+  readonly aborted: boolean;
+  readonly reason?: unknown;
+  addEventListener(type: "abort", listener: () => void): void;
+  removeEventListener(type: "abort", listener: () => void): void;
+}
+
+interface AbortControllerLike<TSignal extends AbortSignalLike = AbortSignalLike> {
+  readonly signal: TSignal;
+  abort(reason?: unknown): void;
+}
+
 interface CancellationBinding {
   readonly cancellation: Cancellation;
   dispose(): void;
 }
 
-declare function fromAbortSignal(signal: AbortSignal): CancellationBinding;
+interface AbortSignalBinding<TSignal extends AbortSignalLike = AbortSignalLike> {
+  readonly signal: TSignal;
+  dispose(): void;
+}
+
+declare function fromAbortSignal(signal: AbortSignalLike): CancellationBinding;
+declare function toAbortSignal<TSignal extends AbortSignalLike>(
+  cancellation: Cancellation,
+  createAbortController: () => AbortControllerLike<TSignal>,
+): AbortSignalBinding<TSignal>;
 ```
 
-`AbortSignal` 属于兼容包和相关适配器的原生接口，不进入主包公共契约。桥接保留已经发生的取消和原始 reason；之后的 abort 转为一次取消通知。`dispose()` 幂等，只移除桥接监听，不撤销已有取消，也不主动取消正在执行的请求。
+兼容包使用结构化接口接收原生 `AbortSignal`，公开声明不要求 DOM 或 Node 类型。`fromAbortSignal()` 保留已经发生的取消和原始 reason；之后的 abort 转为一次取消通知。`toAbortSignal()` 通过调用方提供的工厂创建独立、未取消的控制器，保留实际 signal 的类型，将 Reqvia 取消传给原生控制器；原因是 `undefined` 时，原生实现可以生成默认取消原因。
+
+两个方向在取消后自动释放监听。`dispose()` 幂等，只移除桥接监听，不撤销已有取消，也不主动取消正在执行的请求。
 
 桥接使用方在请求结束的 `finally` 中释放绑定，包括正常完成、失败、取消和超时路径。平台适配器内部建立的原生取消桥由适配器自行释放。

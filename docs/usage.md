@@ -1,6 +1,6 @@
 # 使用方式
 
-业务代码通过 `HttpExecutor` 调用接口；客户端与平台适配器在应用初始化处组装。核心与 Fetch 示例使用已实现的 API，完整行为见[公共契约](contracts.md)。
+业务代码通过 `HttpExecutor` 调用接口；客户端与平台适配器在应用初始化处组装。核心、Fetch、UniApp 与取消桥接示例使用已实现的 API，完整行为见[公共契约](contracts.md)。
 
 ## 组装客户端
 
@@ -33,6 +33,30 @@ const reportsHttp = http.derive({
 ```
 
 派生客户端复用 Transport，并保存独立默认配置。认证会随会话变化时，在应用的会话边界重新组装或绑定执行器；不把可变 token 固定在长期共享的客户端默认头中。
+
+## 使用 UniApp 请求器
+
+在 UniApp 应用中，把回调式 `uni.request` 注入适配器，并声明当前目标端允许的能力。下面的能力配置用于 H5 请求运行时：
+
+```ts
+import { createUniTransport } from "@reqvia/transport-uni";
+
+const uniHttp = createHttpClient({
+  baseURL: "https://api.example.com/v1/",
+  transport: createUniTransport({
+    request: (options) => uni.request(options),
+    capabilities: {
+      methods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+      requestBytes: true,
+      responseBytes: true,
+    },
+  }),
+});
+```
+
+方法列表和二进制能力在创建时复制。未声明的能力在发起请求前以 `UNSUPPORTED` 拒绝；其他目标按其验证结果配置，不直接复制 H5 的能力范围。适配器固定关闭自动 JSON 解析，将文本或 `ArrayBuffer` 交给核心；返回表示不符时以 `ADAPTER` 拒绝，不把对象重新序列化成原始文本。
+
+原生 Cookie、超时等设置放在注入的请求函数中，保留适配器传入的回调、响应表示和正文。`timeoutMs` 管理 Reqvia 的调用预算，独立于原生请求器的超时。
 
 ## 使用 Service 类
 
@@ -182,8 +206,6 @@ Reqvia 只负责 JSON 文本解析，不赋予 `code`、`message` 或 `data` 固
 
 使用方已经持有 `AbortSignal` 时，通过兼容包建立绑定，并在调用结束后释放：
 
-`@reqvia/compat-abort` 尚在规划中，下例定义其接入方式。当前调用可以使用主包的 `createCancellation()`。
-
 ```ts
 import { fromAbortSignal } from "@reqvia/compat-abort";
 
@@ -198,6 +220,22 @@ async function loadUser(id: string, signal: AbortSignal): Promise<User> {
 ```
 
 正常完成也需要 `dispose()`，避免长期存活的 signal 积累监听。释放绑定只结束桥接，不主动取消调用。
+
+反方向连接原生 API 时，显式提供控制器工厂：
+
+```ts
+import { toAbortSignal } from "@reqvia/compat-abort";
+
+const nativeCancellation = createCancellation();
+const nativeBinding = toAbortSignal(nativeCancellation.cancellation, () => new AbortController());
+try {
+  await fetch("https://api.example.com/health", { signal: nativeBinding.signal });
+} finally {
+  nativeBinding.dispose();
+}
+```
+
+工厂每次返回独立且未取消的控制器，`nativeBinding.signal` 保留为原生 `AbortSignal` 类型。桥接只负责取消，不包装该原生调用的响应或错误。
 
 ## 会话与并发的职责
 
